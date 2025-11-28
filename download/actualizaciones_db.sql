@@ -13,4 +13,5 @@ ADD COLUMN `empresa_dual_programacion` VARCHAR(2) DEFAULT 'No' AFTER `pagina_inf
 ALTER TABLE `registro_alumnos`
 ADD COLUMN `puesto` VARCHAR(100) DEFAULT NULL AFTER `id_empresa`,
 ADD COLUMN `fecha_ingreso` DATE DEFAULT NULL AFTER `estatus`,
-ADD COLUMN `fecha_egreso` DATE DEFAULT NULL AFTER `fecha_ingreso`;
+ADD COLUMN `fecha_egreso` DATE DEFAULT NULL AFTER `fecha_ingreso`,
+ADD COLUMN `fecha_rechazo` DATETIME DEFAULT NULL AFTER `fecha_egreso`;

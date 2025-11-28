@@ -4,10 +4,10 @@ require 'db_connection.php';
 
 header('Content-Type: application/json');
 
-$response = ['success' => false, 'message' => 'Acción no válida.'];
+$response = ['success' => false, 'message' => 'Acciรณn no vรกlida.'];
 
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    $response['message'] = 'No tienes permiso para realizar esta acción.';
+    $response['message'] = 'No tienes permiso para realizar esta acciรณn.';
     echo json_encode($response);
     exit();
 }
@@ -20,11 +20,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_registro = $data['id_registro'] ?? 0;
             $estatus = $data['estatus'] ?? '';
             
-            if ($id_registro > 0 && in_array($estatus, ['Pendiente', 'Aceptado', 'Rechazado'])) {
+            // Validar los posibles estatus
+            $allowed_statuses = ['Pendiente', 'Aceptado', 'Rechazado', 'Baja Aceptada', 'Baja Rechazada'];
+
+            if ($id_registro > 0 && in_array($estatus, $allowed_statuses)) {
                 try {
-                    $stmt = $pdo->prepare("UPDATE registro_alumnos SET estatus = ? WHERE id_registro = ?");
-                    if ($stmt->execute([$estatus, $id_registro])) {
-                        $response = ['success' => true, 'message' => 'Estatus actualizado.'];
+                    $sql = "UPDATE registro_alumnos SET estatus = ?";
+                    $params = [$estatus];
+
+                    // Si se rechaza, registrar la fecha para la regla de 12 horas
+                    if ($estatus === 'Rechazado') {
+                        $sql .= ", fecha_rechazo = NOW()";
+                    }
+
+                    // Si se acepta una baja, se podría limpiar la información de la empresa.
+                    if ($estatus === 'Baja Aceptada') {
+                         // Opcional: Anular datos de la vinculación activa
+                        $sql .= ", fecha_ingreso = NULL, fecha_egreso = NULL, puesto = NULL";
+                    }
+
+                    $sql .= " WHERE id_registro = ?";
+                    $params[] = $id_registro;
+
+                    $stmt = $pdo->prepare($sql);
+
+                    if ($stmt->execute($params)) {
+                        $response = ['success' => true, 'message' => 'Estatus actualizado correctamente.'];
                     } else {
                         $response['message'] = 'No se pudo actualizar el estatus.';
                     }
@@ -32,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
                 }
             } else {
-                $response['message'] = 'Datos inválidos para actualizar estatus.';
+                $response['message'] = 'Datos inválidos para actualizar el estatus.';
             }
             break;
 
@@ -43,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($id_registro > 0 && in_array($field, ['puesto', 'fecha_ingreso', 'fecha_egreso'])) {
                 try {
-                    // Si el valor de fecha está vacío, guardarlo como NULL
+                    // Si el valor de fecha estรก vacรญo, guardarlo como NULL
                     $db_value = ($value === '') ? null : $value;
 
                     $stmt = $pdo->prepare("UPDATE registro_alumnos SET {$field} = ? WHERE id_registro = ?");
@@ -56,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
                 }
             } else {
-                $response['message'] = 'Datos inválidos para actualizar el reporte.';
+                $response['message'] = 'Datos invรกlidos para actualizar el reporte.';
             }
             break;
 
@@ -132,25 +153,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
                 }
             } else {
-                $response['message'] = 'Datos inválidos para actualizar la empresa.';
+                $response['message'] = 'Datos invรกlidos para actualizar la empresa.';
             }
             break;
 
         case 'accept_vinculacion':
-            $id_postulacion = $data['id_postulacion'] ?? 0;
+            $id_registro = $data['id_registro'] ?? 0;
             $fecha_ingreso = $data['fecha_ingreso'] ?? '';
             $fecha_egreso = $data['fecha_egreso'] ?? '';
             $puesto = $data['puesto'] ?? '';
 
-            if ($id_postulacion > 0 && !empty($fecha_ingreso) && !empty($fecha_egreso) && !empty($puesto)) {
+            if ($id_registro > 0 && !empty($fecha_ingreso) && !empty($fecha_egreso) && !empty($puesto)) {
                 try {
-                    $stmt = $pdo->prepare(
-                        "UPDATE registro_alumnos SET fecha_ingreso = ?, fecha_egreso = ?, puesto = ?, estatus = 'Aceptado' WHERE id_registro = ?"
-                    );
-                    if ($stmt->execute([$fecha_ingreso, $fecha_egreso, $puesto, $id_postulacion])) {
-                        $response = ['success' => true, 'message' => 'Vinculación aceptada y actualizada correctamente.'];
+                    // Primero, obtenemos el id_alumno de este registro
+                    $stmt_get_alumno = $pdo->prepare("SELECT id_alumno FROM registro_alumnos WHERE id_registro = ?");
+                    $stmt_get_alumno->execute([$id_registro]);
+                    $id_alumno = $stmt_get_alumno->fetchColumn();
+
+                    if ($id_alumno) {
+                        // Anular cualquier otra postulación 'Aceptada' del mismo alumno
+                        $stmt_anular = $pdo->prepare("UPDATE registro_alumnos SET estatus = 'Anulado' WHERE id_alumno = ? AND estatus = 'Aceptado'");
+                        $stmt_anular->execute([$id_alumno]);
+
+                        // Ahora, actualizamos la postulación actual como 'Aceptado'
+                        $stmt_aceptar = $pdo->prepare(
+                            "UPDATE registro_alumnos SET fecha_ingreso = ?, fecha_egreso = ?, puesto = ?, estatus = 'Aceptado' WHERE id_registro = ?"
+                        );
+                        if ($stmt_aceptar->execute([$fecha_ingreso, $fecha_egreso, $puesto, $id_registro])) {
+                            $response = ['success' => true, 'message' => 'Vinculación aceptada y actualizada correctamente.'];
+                        } else {
+                            $response['message'] = 'No se pudo actualizar la vinculación.';
+                        }
                     } else {
-                        $response['message'] = 'No se pudo actualizar la vinculación.';
+                         $response['message'] = 'No se encontró el alumno asociado a este registro.';
                     }
                 } catch (PDOException $e) {
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
@@ -174,7 +209,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
                 }
             } else {
-                $response['message'] = 'ID de empresa no válido.';
+                $response['message'] = 'ID de empresa no vรกlido.';
+            }
+            break;
+
+        case 'edit_user':
+            // Lógica para editar usuario (a implementar)
+            $response = ['success' => true, 'message' => 'Lógica de edición de usuario pendiente.'];
+            break;
+
+        case 'delete_user':
+            $n_control = $data['n_control'] ?? 0;
+            if ($n_control > 0) {
+                try {
+                    $pdo->beginTransaction();
+
+                    // 1. Obtener el id_alumno a partir del n_control
+                    $stmt_get_id = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE n_control = ?");
+                    $stmt_get_id->execute([$n_control]);
+                    $id_alumno = $stmt_get_id->fetchColumn();
+
+                    if ($id_alumno) {
+                        // 2. Desvincular de empresas: Poner estatus 'Baja Administrativa'
+                        $stmt_unlink = $pdo->prepare("UPDATE registro_alumnos SET estatus = 'Baja Administrativa' WHERE id_alumno = ? AND estatus = 'Aceptado'");
+                        $stmt_unlink->execute([$id_alumno]);
+
+                        // 3. Dar de baja al alumno (ej. cambiar un campo 'activo' a 0, o eliminar)
+                        // Por seguridad, es mejor desactivar que eliminar. Asumiremos una columna 'activo'.
+                        // Si no existe, esta línea se puede cambiar por un DELETE.
+                        $stmt_deactivate = $pdo->prepare("UPDATE alumnos SET activo = 0 WHERE id_alumno = ?");
+                        $stmt_deactivate->execute([$id_alumno]);
+                        
+                        $pdo->commit();
+                        $response = ['success' => true, 'message' => 'Usuario dado de baja y desvinculado correctamente.'];
+
+                    } else {
+                        $pdo->rollBack();
+                        $response['message'] = 'No se encontró un alumno con ese número de control.';
+                    }
+                } catch (PDOException $e) {
+                    $pdo->rollBack();
+                    $response['message'] = 'Error de base de datos: ' . $e->getMessage();
+                }
+            } else {
+                $response['message'] = 'Número de control no válido.';
             }
             break;
 
@@ -201,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
             $response['message'] = 'Error de base de datos: ' . $e->getMessage();
         }
     } else {
-        $response['message'] = 'ID de empresa no válido.';
+        $response['message'] = 'ID de empresa no vรกlido.';
     }
 }
 

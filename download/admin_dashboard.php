@@ -11,7 +11,7 @@ require 'php/db_connection.php';
 // Para simplificar, obtenemos todos los datos en una carga inicial.
 // En una app más grande, se usaría paginación y AJAX para cargar datos.
 
-// Reporte de Alumnos con detalles de vinculación
+// Gestión de Alumnos Aceptados
 $reporte_alumnos = $pdo->query("
     SELECT 
         a.id_alumno, a.nombre, a.ap_paterno, a.ap_materno,
@@ -19,8 +19,12 @@ $reporte_alumnos = $pdo->query("
         e.nombre_empresa,
         r.puesto, r.fecha_ingreso, r.fecha_egreso, r.id_registro
     FROM alumnos a
-    LEFT JOIN registro_alumnos r ON a.id_alumno = r.id_alumno AND r.estatus = 'Aceptado'
-    LEFT JOIN empresas e ON r.id_empresa = e.id_empresa
+    JOIN registro_alumnos r ON a.id_alumno = r.id_alumno
+    JOIN empresas e ON r.id_empresa = e.id_empresa
+    WHERE r.estatus = 'Aceptado'
+      AND r.puesto IS NOT NULL AND r.puesto != ''
+      AND r.fecha_ingreso IS NOT NULL
+      AND r.fecha_egreso IS NOT NULL
     ORDER BY a.ap_paterno
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,7 +41,7 @@ $reporte_usuarios = $pdo->query("
 // Gestión de Vinculaciones
 $postulaciones = $pdo->query("
     SELECT r.id_registro, r.fecha_registro, r.estatus, 
-           a.nombre, a.ap_paterno, 
+           a.nombre, a.ap_paterno, a.ap_materno,
            e.nombre_empresa
     FROM registro_alumnos r
     JOIN alumnos a ON r.id_alumno = a.id_alumno
@@ -68,6 +72,7 @@ $postulaciones = $pdo->query("
     <header class="dashboard-header">
         <h1>Panel de Administrador</h1>
         <nav>
+            <button id="edit-admin-profile" class="btn btn-secondary">Editar Perfil</button>
             <a href="php/logout.php" class="btn btn-logout">Cerrar Sesión</a>
         </nav>
     </header>
@@ -101,6 +106,7 @@ $postulaciones = $pdo->query("
                                         <th>Semestre</th>
                                         <th>Grupo</th>
                                         <th>Turno</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -115,6 +121,10 @@ $postulaciones = $pdo->query("
                                         <td><?php echo htmlspecialchars($usuario['semestre']); ?></td>
                                         <td><?php echo htmlspecialchars($usuario['grupo']); ?></td>
                                         <td><?php echo htmlspecialchars($usuario['turno']); ?></td>
+                                        <td class="actions-cell">
+                                            <button class="btn-action btn-edit-user" data-id="<?php echo $usuario['n_control']; ?>" title="Editar Usuario"><i class="fas fa-user-edit"></i></button>
+                                            <button class="btn-action btn-delete-user" data-id="<?php echo $usuario['n_control']; ?>" title="Dar de Baja Usuario"><i class="fas fa-user-slash"></i></button>
+                                        </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -229,9 +239,9 @@ $postulaciones = $pdo->query("
                             <td><?php echo htmlspecialchars($empresa['perfil_alumno'] ?? ''); ?></td>
                             <td><a href="<?php echo htmlspecialchars($empresa['pagina_informativa'] ?? ''); ?>" target="_blank">Link</a></td>
                             <td><?php echo htmlspecialchars($empresa['empresa_dual_programacion'] ?? 'No'); ?></td>
-                            <td>
-                                <button class="btn-action btn-edit" data-id="<?php echo $empresa['id_empresa']; ?>">Editar</button>
-                                <button class="btn-action btn-delete" data-id="<?php echo $empresa['id_empresa']; ?>">Eliminar</button>
+                            <td class="actions-cell">
+                                <button class="btn-action btn-edit" data-id="<?php echo $empresa['id_empresa']; ?>" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn-action btn-delete" data-id="<?php echo $empresa['id_empresa']; ?>" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -258,7 +268,7 @@ $postulaciones = $pdo->query("
                     <tbody>
                         <?php foreach ($postulaciones as $post): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($post['nombre'] . ' ' . $post['ap_paterno']); ?></td>
+                            <td><?php echo htmlspecialchars($post['nombre'] . ' ' . $post['ap_paterno'] . ' ' . $post['ap_materno']); ?></td>
                             <td><?php echo htmlspecialchars($post['nombre_empresa']); ?></td>
                             <td><?php echo date("d/m/Y", strtotime($post['fecha_registro'])); ?></td>
                             <td>
@@ -266,25 +276,18 @@ $postulaciones = $pdo->query("
                                     <?php echo htmlspecialchars($post['estatus']); ?>
                                 </span>
                             </td>
-                            <td>
-                                <?php if (in_array($post['estatus'], ['Pendiente', 'Aceptado', 'Rechazado'])): ?>
-                                    <select class="status-select" data-id="<?php echo $post['id_registro']; ?>">
-                                        <option value="Pendiente" <?php echo $post['estatus'] === 'Pendiente' ? 'selected' : ''; ?>>Pendiente</option>
-                                        <option value="Aceptado" <?php echo $post['estatus'] === 'Aceptado' ? 'selected' : ''; ?>>Aceptado</option>
-                                        <option value="Rechazado" <?php echo $post['estatus'] === 'Rechazado' ? 'selected' : ''; ?>>Rechazado</option>
-                                    </select>
-                                <?php elseif (in_array($post['estatus'], ['Baja Solicitada', 'Baja Aceptada', 'Baja Rechazada'])): ?>
-                                    <select class="status-select" data-id="<?php echo $post['id_registro']; ?>">
-                                        <option value="Baja Solicitada" <?php echo $post['estatus'] === 'Baja Solicitada' ? 'selected' : ''; ?>>Baja Solicitada</option>
-                                        <option value="Baja Aceptada" <?php echo $post['estatus'] === 'Baja Aceptada' ? 'selected' : ''; ?>>Baja Aceptada</option>
-                                        <option value="Baja Rechazada" <?php echo $post['estatus'] === 'Baja Rechazada' ? 'selected' : ''; ?>>Baja Rechazada</option>
-                                    </select>
-                                <?php endif; ?>
+                            <td class="actions-cell">
                                 <?php if ($post['estatus'] === 'Pendiente'): ?>
-                                    <button class="btn-action btn-aceptar" data-id="<?php echo $post['id_registro']; ?>">Aceptar</button>
-                                    <button class="btn-action btn-denegar" data-id="<?php echo $post['id_registro']; ?>">Denegar</button>
+                                    <button class="btn-action btn-aceptar" data-id="<?php echo $post['id_registro']; ?>" title="Aceptar"><i class="fas fa-check"></i></button>
+                                    <button class="btn-action btn-denegar" data-id="<?php echo $post['id_registro']; ?>" title="Denegar"><i class="fas fa-times"></i></button>
                                 <?php endif; ?>
-                                <button class="btn-action btn-delete-postulacion" data-id="<?php echo $post['id_registro']; ?>">Eliminar</button>
+
+                                <?php if (in_array($post['estatus'], ['Baja Solicitada'])): ?>
+                                     <button class="btn-action btn-baja-aceptar" data-id="<?php echo $post['id_registro']; ?>" title="Aceptar Baja"><i class="fas fa-check-circle"></i></button>
+                                     <button class="btn-action btn-baja-rechazar" data-id="<?php echo $post['id_registro']; ?>" title="Rechazar Baja"><i class="fas fa-times-circle"></i></button>
+                                <?php endif; ?>
+                                
+                                <button class="btn-action btn-delete-postulacion" data-id="<?php echo $post['id_registro']; ?>" title="Eliminar Registro"><i class="fas fa-trash-alt"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -363,6 +366,19 @@ $postulaciones = $pdo->query("
     </div>
 
     <script src="js/admin_dashboard.js"></script>
+
+    <!-- Modal de Confirmación para Eliminar -->
+    <div id="confirm-delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="delete-modal-title">Confirmar Eliminación</h2>
+            <p id="delete-modal-message">¿Estás seguro de que quieres eliminar este elemento?</p>
+            <div class="modal-actions">
+                <button id="confirm-delete-btn" class="btn btn-danger">Eliminar</button>
+                <button id="cancel-delete-btn" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal para Aceptar Vinculación -->
     <div id="aceptar-vinculacion-modal" class="modal">

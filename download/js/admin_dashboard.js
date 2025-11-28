@@ -49,6 +49,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if (empresaForm) {
         empresaForm.addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // -- INICIO: Validación del Formulario --
+            const rfcInput = document.getElementById('rfc');
+            const rfcValue = rfcInput.value.trim().toUpperCase();
+            
+            // Expresión regular para validar RFC (simplificada)
+            const rfcRegex = /^[A-Z&Ñ]{3,4}\d{6}[A-Z\d]{3}$/;
+
+            if (rfcValue && !rfcRegex.test(rfcValue)) {
+                alert('El formato del RFC no es válido. Debe ser, por ejemplo, "XAXX010101000".');
+                rfcInput.focus();
+                return;
+            }
+
+            // Validar que los campos requeridos no estén vacíos
+            const requiredFields = ['nombre_empresa', 'descripcion', 'carrera_afin', 'direccion', 'telefono_empresa', 'correo_empresa'];
+            for (const fieldId of requiredFields) {
+                const input = document.getElementById(fieldId);
+                if (!input.value.trim()) {
+                    alert(`El campo "${input.previousElementSibling.textContent}" es obligatorio.`);
+                    input.focus();
+                    return;
+                }
+            }
+            // -- FIN: Validación del Formulario --
+
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
             
@@ -117,7 +143,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleDeleteEmpresa(id) {
-        if (confirm('¿Estás seguro de que quieres eliminar esta empresa?')) {
+        const deleteModal = document.getElementById('confirm-delete-modal');
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        const cancelBtn = document.getElementById('cancel-delete-btn');
+        const closeModal = deleteModal.querySelector('.close-button');
+
+        deleteModal.style.display = 'block';
+
+        // Usamos .onclick para sobrescribir eventos previos y evitar múltiples llamadas
+        confirmBtn.onclick = () => {
             fetch('php/admin_actions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -130,43 +164,121 @@ document.addEventListener('DOMContentLoaded', function() {
                     location.reload();
                 }
             })
-            .catch(error => console.error('Error:', error));
-        }
+            .catch(error => console.error('Error:', error))
+            .finally(() => {
+                deleteModal.style.display = 'none';
+            });
+        };
+
+        cancelBtn.onclick = () => {
+            deleteModal.style.display = 'none';
+        };
+        
+        closeModal.onclick = () => {
+            deleteModal.style.display = 'none';
+        };
+
+        window.addEventListener('click', (event) => {
+            if (event.target == deleteModal) {
+                deleteModal.style.display = 'none';
+            }
+        });
     }
     // -- FIN: Lógica para botones de Empresa --
 
 
+    // -- INICIO: Lógica para botones de Editar y Eliminar Usuario --
+    const usuariosTable = document.querySelector('#usuarios-table');
+    if (usuariosTable) {
+        usuariosTable.addEventListener('click', function(e) {
+            const button = e.target.closest('.btn-action');
+            if (!button) return;
+
+            const nControl = button.getAttribute('data-id');
+
+            if (button.classList.contains('btn-edit-user')) {
+                // Futura implementación del modal de edición de usuario
+                alert(`Funcionalidad para editar el usuario ${nControl} pendiente de implementación.`);
+                
+            } else if (button.classList.contains('btn-delete-user')) {
+                handleDeleteUser(nControl);
+            }
+        });
+    }
+
+    function handleDeleteUser(nControl) {
+        const deleteModal = document.getElementById('confirm-delete-modal');
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        const cancelBtn = document.getElementById('cancel-delete-btn');
+        const closeModalBtn = deleteModal.querySelector('.close-button');
+        
+        document.getElementById('delete-modal-message').textContent = `¿Estás seguro de que quieres dar de baja a este usuario? Esta acción también lo desvinculará de cualquier empresa activa.`;
+        deleteModal.style.display = 'block';
+
+        confirmBtn.onclick = () => {
+            fetch('php/admin_actions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete_user', n_control: nControl })
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.message);
+                if (result.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error))
+            .finally(() => {
+                deleteModal.style.display = 'none';
+            });
+        };
+
+        cancelBtn.onclick = () => deleteModal.style.display = 'none';
+        closeModalBtn.onclick = () => deleteModal.style.display = 'none';
+    }
+    // -- FIN: Lógica para botones de Usuario --
+
+
     // -- INICIO: Lógica para Aceptar/Denegar Vinculación --
     const vinculacionesTable = document.querySelector('#gestion-vinculaciones table');
-    const vinculacionModal = document.getElementById('vinculacion-modal');
-    const vinculacionForm = document.getElementById('vinculacion-form');
-    const closeVinculacionModal = document.querySelector('#vinculacion-modal .close-button');
+    const aceptarVinculacionModal = document.getElementById('aceptar-vinculacion-modal');
+    const aceptarVinculacionForm = document.getElementById('aceptar-vinculacion-form');
+    const closeAceptarModalBtn = document.querySelector('#aceptar-vinculacion-modal .close-button');
 
     if (vinculacionesTable) {
         vinculacionesTable.addEventListener('click', function(e) {
-            const target = e.target;
-            if (target.classList.contains('btn-accept')) {
-                const postulacionId = target.getAttribute('data-id');
-                document.getElementById('id_postulacion').value = postulacionId;
-                vinculacionModal.style.display = 'block';
-            } else if (target.classList.contains('btn-deny')) {
-                const postulacionId = target.getAttribute('data-id');
-                if (confirm('¿Estás seguro de que quieres denegar esta solicitud?')) {
-                    // Aquí iría la lógica para denegar, por ejemplo, una llamada a fetch
-                    console.log('Denegar postulación ID:', postulacionId);
+            const button = e.target.closest('.btn-action');
+            if (!button) return;
+
+            const idRegistro = button.getAttribute('data-id');
+
+            if (button.classList.contains('btn-aceptar')) {
+                document.getElementById('id_registro_vinculacion').value = idRegistro;
+                aceptarVinculacionModal.style.display = 'block';
+
+            } else if (button.classList.contains('btn-denegar')) {
+                handleDenyVinculacion(idRegistro);
+            } else if (button.classList.contains('btn-baja-aceptar')) {
+                 if (confirm('¿Estás seguro de que quieres aceptar esta solicitud de baja?')) {
+                    updateVinculacionStatus(idRegistro, 'Baja Aceptada');
+                }
+            } else if (button.classList.contains('btn-baja-rechazar')) {
+                if (confirm('¿Estás seguro de que quieres rechazar esta solicitud de baja?')) {
+                    updateVinculacionStatus(idRegistro, 'Aceptado'); // Regresa al estado anterior
                 }
             }
         });
     }
 
-    if (closeVinculacionModal) {
-        closeVinculacionModal.addEventListener('click', () => {
-            vinculacionModal.style.display = 'none';
+    if (closeAceptarModalBtn) {
+        closeAceptarModalBtn.addEventListener('click', () => {
+            aceptarVinculacionModal.style.display = 'none';
         });
     }
 
-    if (vinculacionForm) {
-        vinculacionForm.addEventListener('submit', function(e) {
+    if (aceptarVinculacionForm) {
+        aceptarVinculacionForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
@@ -181,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 alert(result.message);
                 if (result.success) {
-                    vinculacionModal.style.display = 'none';
+                    aceptarVinculacionModal.style.display = 'none';
                     location.reload();
                 }
             })
@@ -189,9 +301,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function handleDenyVinculacion(id) {
+        const deleteModal = document.getElementById('confirm-delete-modal');
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        const cancelBtn = document.getElementById('cancel-delete-btn');
+        const closeModalBtn = deleteModal.querySelector('.close-button');
+        
+        document.getElementById('delete-modal-title').textContent = 'Confirmar Rechazo';
+        document.getElementById('delete-modal-message').textContent = '¿Estás seguro de que quieres rechazar esta solicitud?';
+        deleteModal.style.display = 'block';
+
+        confirmBtn.onclick = () => {
+            updateVinculacionStatus(id, 'Rechazado');
+            deleteModal.style.display = 'none';
+        };
+
+        cancelBtn.onclick = () => deleteModal.style.display = 'none';
+        closeModalBtn.onclick = () => deleteModal.style.display = 'none';
+    }
+
+    function updateVinculacionStatus(id, newStatus) {
+        fetch('php/admin_actions.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update_status', id_registro: id, estatus: newStatus })
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
     window.addEventListener('click', (event) => {
-        if (event.target == vinculacionModal) {
-            vinculacionModal.style.display = 'none';
+        if (event.target == aceptarVinculacionModal) {
+            aceptarVinculacionModal.style.display = 'none';
         }
     });
     // -- FIN: Lógica para Aceptar/Denegar Vinculación --
@@ -285,30 +432,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('Error:', error));
     }
 
-    // Cambiar estatus de postulación
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function() {
-            const id_registro = this.getAttribute('data-id');
-            const estatus = this.value;
-
-            fetch('php/admin_actions.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'update_status',
-                    id_registro: id_registro,
-                    estatus: estatus
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    alert('Error al cambiar el estatus: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
-    });
     // -- FIN: Lógica para campos de la tabla --
 
     // -- INICIO: Lógica para Generar Reportes PDF --
@@ -339,4 +462,15 @@ document.addEventListener('DOMContentLoaded', function() {
         doc.save(`${title.replace(/ /g, '_')}.pdf`);
     }
     // -- FIN: Lógica para Generar Reportes PDF --
+
+
+    // -- INICIO: Lógica para el botón de Editar Perfil del Admin --
+    const editAdminBtn = document.getElementById('edit-admin-profile');
+    if (editAdminBtn) {
+        editAdminBtn.addEventListener('click', () => {
+            alert('Funcionalidad para editar el perfil del administrador pendiente de implementación.');
+            // Aquí se podría abrir un modal similar al de empresas para editar los datos del admin
+        });
+    }
+    // -- FIN: Lógica para el botón de Editar Perfil del Admin --
 });
