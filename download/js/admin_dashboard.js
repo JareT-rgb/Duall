@@ -196,15 +196,91 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const nControl = button.getAttribute('data-id');
 
-            if (button.classList.contains('btn-edit-user')) {
-                // Futura implementación del modal de edición de usuario
-                alert(`Funcionalidad para editar el usuario ${nControl} pendiente de implementación.`);
-                
-            } else if (button.classList.contains('btn-delete-user')) {
+            if (button.classList.contains('btn-edit')) {
+                handleEditUser(nControl);
+            } else if (button.classList.contains('btn-delete')) {
                 handleDeleteUser(nControl);
             }
         });
     }
+
+    const userModal = document.getElementById('user-modal');
+    const userForm = document.getElementById('user-form');
+    const userModalCloseButton = userModal.querySelector('.close-button');
+
+    function handleEditUser(nControl) {
+        fetch(`php/admin_actions.php?action=get_user&id=${nControl}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const user = result.data;
+                    document.getElementById('n_control').value = user.n_control;
+                    document.getElementById('nombre').value = user.nombre;
+                    document.getElementById('ap_paterno').value = user.ap_paterno;
+                    document.getElementById('ap_materno').value = user.ap_materno;
+                    document.getElementById('correo_electronico').value = user.correo_electronico;
+                    document.getElementById('telefono').value = user.telefono;
+                    document.getElementById('direccion').value = user.direccion;
+                    document.getElementById('carrera').value = user.carrera;
+                    document.getElementById('semestre').value = user.semestre;
+                    document.getElementById('grupo').value = user.grupo;
+                    document.getElementById('turno').value = user.turno;
+
+                    document.getElementById('user-modal-title').textContent = 'Editar Usuario';
+                    userModal.style.display = 'block';
+                } else {
+                    alert(result.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    if (userForm) {
+        userForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const requiredFields = ['nombre', 'ap_paterno', 'ap_materno', 'correo_electronico', 'telefono', 'direccion', 'carrera', 'semestre', 'grupo', 'turno'];
+            for (const fieldId of requiredFields) {
+                const input = document.getElementById(fieldId);
+                if (!input.value.trim()) {
+                    alert(`El campo "${input.previousElementSibling.textContent}" es obligatorio.`);
+                    input.focus();
+                    return;
+                }
+            }
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            data.action = 'edit_user';
+
+            fetch('php/admin_actions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.message);
+                if (result.success) {
+                    userModal.style.display = 'none';
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+
+    if (userModalCloseButton) {
+        userModalCloseButton.addEventListener('click', () => {
+            userModal.style.display = 'none';
+        });
+    }
+
+    window.addEventListener('click', (event) => {
+        if (event.target == userModal) {
+            userModal.style.display = 'none';
+        }
+    });
 
     function handleDeleteUser(nControl) {
         const deleteModal = document.getElementById('confirm-delete-modal');
@@ -212,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cancelBtn = document.getElementById('cancel-delete-btn');
         const closeModalBtn = deleteModal.querySelector('.close-button');
         
-        document.getElementById('delete-modal-message').textContent = `¿Estás seguro de que quieres dar de baja a este usuario? Esta acción también lo desvinculará de cualquier empresa activa.`;
+        document.getElementById('delete-modal-message').textContent = `¿Estás seguro de que quieres eliminar a este usuario? Esta acción no se puede deshacer.`;
         deleteModal.style.display = 'block';
 
         confirmBtn.onclick = () => {

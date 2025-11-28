@@ -122,8 +122,8 @@ $postulaciones = $pdo->query("
                                         <td><?php echo htmlspecialchars($usuario['grupo']); ?></td>
                                         <td><?php echo htmlspecialchars($usuario['turno']); ?></td>
                                         <td class="actions-cell">
-                                            <button class="btn-action btn-edit-user" data-id="<?php echo $usuario['n_control']; ?>" title="Editar Usuario"><i class="fas fa-user-edit"></i></button>
-                                            <button class="btn-action btn-delete-user" data-id="<?php echo $usuario['n_control']; ?>" title="Dar de Baja Usuario"><i class="fas fa-user-slash"></i></button>
+                                            <button class="btn-action btn-edit" data-id="<?php echo $usuario['n_control']; ?>" title="Editar Usuario"><i class="fas fa-user-edit"></i></button>
+                                            <button class="btn-action btn-delete" data-id="<?php echo $usuario['n_control']; ?>" title="Dar de Baja Usuario"><i class="fas fa-user-slash"></i></button>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -400,6 +400,58 @@ $postulaciones = $pdo->query("
                     <input type="text" id="puesto" name="puesto" required>
                 </div>
                 <button type="submit" class="btn">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Usuario -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="user-modal-title">Editar Usuario</h2>
+            <form id="user-form">
+                <input type="hidden" id="n_control" name="n_control">
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="ap_paterno">Apellido Paterno:</label>
+                    <input type="text" id="ap_paterno" name="ap_paterno" required>
+                </div>
+                <div class="form-group">
+                    <label for="ap_materno">Apellido Materno:</label>
+                    <input type="text" id="ap_materno" name="ap_materno" required>
+                </div>
+                <div class="form-group">
+                    <label for="correo_electronico">Correo Electrónico:</label>
+                    <input type="email" id="correo_electronico" name="correo_electronico" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Teléfono:</label>
+                    <input type="text" id="telefono" name="telefono" required>
+                </div>
+                <div class="form-group">
+                    <label for="direccion">Dirección:</label>
+                    <input type="text" id="direccion" name="direccion" required>
+                </div>
+                <div class="form-group">
+                    <label for="carrera">Carrera:</label>
+                    <input type="text" id="carrera" name="carrera" required>
+                </div>
+                <div class="form-group">
+                    <label for="semestre">Semestre:</label>
+                    <input type="number" id="semestre" name="semestre" required>
+                </div>
+                <div class="form-group">
+                    <label for="grupo">Grupo:</label>
+                    <input type="text" id="grupo" name="grupo" required>
+                </div>
+                <div class="form-group">
+                    <label for="turno">Turno:</label>
+                    <input type="text" id="turno" name="turno" required>
+                </div>
+                <button type="submit" class="btn">Guardar Cambios</button>
             </form>
         </div>
     </div>

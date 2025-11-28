@@ -214,41 +214,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'edit_user':
-            // Lógica para editar usuario (a implementar)
-            $response = ['success' => true, 'message' => 'Lógica de edición de usuario pendiente.'];
+            $n_control = $data['n_control'] ?? 0;
+            $nombre = $data['nombre'] ?? '';
+            $ap_paterno = $data['ap_paterno'] ?? '';
+            $ap_materno = $data['ap_materno'] ?? '';
+            $correo_electronico = $data['correo_electronico'] ?? '';
+            $telefono = $data['telefono'] ?? '';
+            $direccion = $data['direccion'] ?? '';
+            $carrera = $data['carrera'] ?? '';
+            $semestre = $data['semestre'] ?? 0;
+            $grupo = $data['grupo'] ?? '';
+            $turno = $data['turno'] ?? '';
+
+            if ($n_control > 0 && !empty($nombre) && !empty($ap_paterno) && !empty($ap_materno)) {
+                try {
+                    $stmt = $pdo->prepare(
+                        "UPDATE alumnos SET 
+                        nombre = ?, ap_paterno = ?, ap_materno = ?, correo_electronico = ?, 
+                        telefono = ?, direccion = ?, carrera = ?, semestre = ?, grupo = ?, turno = ?
+                        WHERE n_control = ?"
+                    );
+                    if ($stmt->execute([
+                        $nombre, $ap_paterno, $ap_materno, $correo_electronico, $telefono,
+                        $direccion, $carrera, $semestre, $grupo, $turno, $n_control
+                    ])) {
+                        $response = ['success' => true, 'message' => 'Usuario actualizado correctamente.'];
+                    } else {
+                        $response['message'] = 'No se pudo actualizar el usuario.';
+                    }
+                } catch (PDOException $e) {
+                    $response['message'] = 'Error de base de datos: ' . $e->getMessage();
+                }
+            } else {
+                $response['message'] = 'Datos inválidos para actualizar el usuario.';
+            }
             break;
 
         case 'delete_user':
             $n_control = $data['n_control'] ?? 0;
             if ($n_control > 0) {
                 try {
-                    $pdo->beginTransaction();
-
-                    // 1. Obtener el id_alumno a partir del n_control
-                    $stmt_get_id = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE n_control = ?");
-                    $stmt_get_id->execute([$n_control]);
-                    $id_alumno = $stmt_get_id->fetchColumn();
-
-                    if ($id_alumno) {
-                        // 2. Desvincular de empresas: Poner estatus 'Baja Administrativa'
-                        $stmt_unlink = $pdo->prepare("UPDATE registro_alumnos SET estatus = 'Baja Administrativa' WHERE id_alumno = ? AND estatus = 'Aceptado'");
-                        $stmt_unlink->execute([$id_alumno]);
-
-                        // 3. Dar de baja al alumno (ej. cambiar un campo 'activo' a 0, o eliminar)
-                        // Por seguridad, es mejor desactivar que eliminar. Asumiremos una columna 'activo'.
-                        // Si no existe, esta línea se puede cambiar por un DELETE.
-                        $stmt_deactivate = $pdo->prepare("UPDATE alumnos SET activo = 0 WHERE id_alumno = ?");
-                        $stmt_deactivate->execute([$id_alumno]);
-                        
-                        $pdo->commit();
-                        $response = ['success' => true, 'message' => 'Usuario dado de baja y desvinculado correctamente.'];
-
+                    $stmt = $pdo->prepare("DELETE FROM alumnos WHERE n_control = ?");
+                    if ($stmt->execute([$n_control])) {
+                        $response = ['success' => true, 'message' => 'Usuario eliminado correctamente.'];
                     } else {
-                        $pdo->rollBack();
-                        $response['message'] = 'No se encontró un alumno con ese número de control.';
+                        $response['message'] = 'No se pudo eliminar el usuario.';
                     }
                 } catch (PDOException $e) {
-                    $pdo->rollBack();
                     $response['message'] = 'Error de base de datos: ' . $e->getMessage();
                 }
             } else {
@@ -279,10 +291,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
             $response['message'] = 'Error de base de datos: ' . $e->getMessage();
         }
     } else {
-        $response['message'] = 'ID de empresa no vรกlido.';
+        $response['message'] = 'ID de empresa no válido.';
     }
 }
 
+// Manejar solicitudes GET para obtener datos de un usuario
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_user') {
+    $n_control = $_GET['id'] ?? 0;
+    if ($n_control > 0) {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM alumnos WHERE n_control = ?");
+            $stmt->execute([$n_control]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($user) {
+                $response = ['success' => true, 'data' => $user];
+            } else {
+                $response['message'] = 'Usuario no encontrado.';
+            }
+        } catch (PDOException $e) {
+            $response['message'] = 'Error de base de datos: ' . $e->getMessage();
+        }
+    } else {
+        $response['message'] = 'Número de control no válido.';
+    }
+}
 
 echo json_encode($response);
 ?>
