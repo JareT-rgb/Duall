@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Vinculación CBTIS 258</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-toggle">
+                <button id="login-toggle" class="toggle-active">Iniciar Sesión</button>
+                <button id="register-toggle">Registrarse</button>
+            </div>
+
+            <!-- Formulario de Inicio de Sesión -->
+            <form id="login-form" class="form-active">
+                <h2>Iniciar Sesión</h2>
+                <div class="role-selector">
+                    <label><input type="radio" name="role" value="alumno" checked> Alumno</label>
+                    <label><input type="radio" name="role" value="admin"> Administrador</label>
+                </div>
+                <div class="input-group">
+                    <label for="login-email">Correo Electrónico / Usuario</label>
+                    <input type="text" id="login-email" name="email" required>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Contraseña</label>
+                    <input type="password" id="login-password" name="password" required>
+                </div>
+                <button type="submit">Acceder</button>
+                <p id="login-message" class="message"></p>
+            </form>
+
+            <!-- Formulario de Registro de Alumno -->
+            <form id="register-form">
+                <h2>Registro de Alumno</h2>
+                <div class="input-group">
+                    <label for="reg-nombre">Nombre(s)</label>
+                    <input type="text" id="reg-nombre" name="nombre" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-ap_paterno">Apellido Paterno</label>
+                    <input type="text" id="reg-ap_paterno" name="ap_paterno" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-ap_materno">Apellido Materno</label>
+                    <input type="text" id="reg-ap_materno" name="ap_materno" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-email">Correo Electrónico</label>
+                    <input type="email" id="reg-email" name="correo_electronico" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-telefono">Teléfono</label>
+                    <input type="tel" id="reg-telefono" name="telefono" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-colonia">Colonia</label>
+                    <input type="text" id="reg-colonia" name="colonia" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-calle">Calle</label>
+                    <input type="text" id="reg-calle" name="calle" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-numero_casa">Número de Casa</label>
+                    <input type="text" id="reg-numero_casa" name="numero_casa" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-n_control">Número de Control</label>
+                    <input type="text" id="reg-n_control" name="n_control" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-carrera">Carrera</label>
+                    <select id="reg-carrera" name="carrera" required>
+                        <option value="">Selecciona tu carrera</option>
+                        <option value="Programacion">Programación</option>
+                        <option value="Contabilidad">Contabilidad</option>
+                        <option value="Logistica">Logística</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="reg-semestre">Semestre</label>
+                    <input type="number" id="reg-semestre" name="semestre" min="1" max="6" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-grupo">Grupo</label>
+                    <select id="reg-grupo" name="grupo" required>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="reg-turno">Turno</label>
+                    <select id="reg-turno" name="turno" required>
+                        <option value="Matutino">Matutino</option>
+                        <option value="Vespertino">Vespertino</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="reg-password">Contraseña</label>
+                    <input type="password" id="reg-password" name="contrasena" required>
+                </div>
+                <button type="submit">Registrarse</button>
+                <p id="register-message" class="message"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/scripts.js"></script>
+</body>
+</html>
