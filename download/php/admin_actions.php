@@ -39,6 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sql .= ", fecha_ingreso = NULL, fecha_egreso = NULL, puesto = NULL";
                     }
 
+                    // Si se rechaza una baja, simplemente se actualiza el estatus. No se tocan las fechas.
+                    // El estatus 'Aceptado' se reserva para la acción de aceptar una postulación 'Pendiente'.
+                    if ($estatus === 'Baja Rechazada') {
+                        // El estatus vuelve a ser 'Aceptado' porque la baja no procedió.
+                        $estatus = 'Aceptado';
+                        $sql = "UPDATE registro_alumnos SET estatus = ?";
+                    }
+                    
                     $sql .= " WHERE id_registro = ?";
                     $params[] = $id_registro;
 

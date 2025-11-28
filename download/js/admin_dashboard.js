@@ -102,12 +102,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const empresasTable = document.querySelector('#gestion-empresas table');
     if (empresasTable) {
         empresasTable.addEventListener('click', function(e) {
-            const target = e.target;
-            if (target.classList.contains('btn-edit')) {
-                const empresaId = target.getAttribute('data-id');
+            const button = e.target.closest('.btn-action');
+            if (!button) return;
+
+            const empresaId = button.getAttribute('data-id');
+
+            if (button.classList.contains('btn-edit')) {
                 handleEditEmpresa(empresaId);
-            } else if (target.classList.contains('btn-delete')) {
-                const empresaId = target.getAttribute('data-id');
+            } else if (button.classList.contains('btn-delete')) {
                 handleDeleteEmpresa(empresaId);
             }
         });
@@ -341,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else if (button.classList.contains('btn-baja-rechazar')) {
                 if (confirm('¿Estás seguro de que quieres rechazar esta solicitud de baja?')) {
-                    updateVinculacionStatus(idRegistro, 'Aceptado'); // Regresa al estado anterior
+                    updateVinculacionStatus(idRegistro, 'Baja Rechazada'); // Regresa al estado anterior
                 }
             }
         });

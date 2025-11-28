@@ -240,8 +240,12 @@ $postulaciones = $pdo->query("
                             <td><a href="<?php echo htmlspecialchars($empresa['pagina_informativa'] ?? ''); ?>" target="_blank">Link</a></td>
                             <td><?php echo htmlspecialchars($empresa['empresa_dual_programacion'] ?? 'No'); ?></td>
                             <td class="actions-cell">
-                                <button class="btn-action btn-edit" data-id="<?php echo $empresa['id_empresa']; ?>" title="Editar"><i class="fas fa-edit"></i></button>
-                                <button class="btn-action btn-delete" data-id="<?php echo $empresa['id_empresa']; ?>" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+                                <button class="btn-action btn-edit" data-id="<?php echo $empresa['id_empresa']; ?>" title="Editar">
+                                    <span class="fas fa-edit btn-action"></span>
+                                </button>
+                                <button class="btn-action btn-delete" data-id="<?php echo $empresa['id_empresa']; ?>" title="Eliminar">
+                                    <span class="fas fa-trash-alt btn-action"></span>
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -282,7 +286,7 @@ $postulaciones = $pdo->query("
                                     <button class="btn-action btn-denegar" data-id="<?php echo $post['id_registro']; ?>" title="Denegar"><i class="fas fa-times"></i></button>
                                 <?php endif; ?>
 
-                                <?php if (in_array($post['estatus'], ['Baja Solicitada'])): ?>
+                                <?php if (in_array($post['estatus'], ['Baja Solicitada', 'Baja Rechazada'])): ?>
                                      <button class="btn-action btn-baja-aceptar" data-id="<?php echo $post['id_registro']; ?>" title="Aceptar Baja"><i class="fas fa-check-circle"></i></button>
                                      <button class="btn-action btn-baja-rechazar" data-id="<?php echo $post['id_registro']; ?>" title="Rechazar Baja"><i class="fas fa-times-circle"></i></button>
                                 <?php endif; ?>
